@@ -10,7 +10,7 @@ All code provided is released under the GNU General Public License
 Author: Aaron Parsons
 """
 
-import phs, const, coord, deconv
+import phs, const, coord, deconvGPU, deconv
 import ephem, fit, healpix, img 
 import interp, cal, map, miriad
 import optimize, rfi, amp, scripting, src, _src, utils

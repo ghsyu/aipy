@@ -1,6 +1,9 @@
 from distutils.core import setup, Extension
-
-import os, glob, numpy, sys,subprocess
+from distutils.command.build_ext import build_ext
+from distutils.ccompiler import CCompiler
+from distutils.errors import DistutilsExecError, CompileError
+from distutils import log
+import os, glob, numpy, platform, sys,subprocess
 if 'upload' in sys.argv or 'register' in sys.argv:
     from ez_setup import use_setuptools; use_setuptools()
     from setuptools import setup, Extension
@@ -37,6 +40,58 @@ def get_description():
 
 def indir(path, files):
     return [os.path.join(path, f) for f in files]
+
+NVCC, CUDA_DIR = '', ''
+for path in ('/usr/local/cuda', '/opt/cuda', '/usr/local/cuda-5.0'):
+    if os.path.exists(path):
+        CUDA_DIR = path
+        NVCC = os.path.join(path, 'bin', 'nvcc')
+        break
+if CUDA_DIR == '': log.warn("No CUDA installation was found.  Trying anyway...")
+
+class CudaCompiler(CCompiler):
+    compiler_type = 'nvcc'
+    compiler_so = [NVCC]
+    executables = {'compiler' : [NVCC]}
+    src_extensions = ['.cu']
+    obj_extension = '.o'
+    def _compile(self, obj, src, ext, cc_args, extra_postargs, pp_opts):
+        try: self.spawn(self.compiler_so + cc_args + [src,'-o',obj] + extra_postargs)
+        except DistutilsExecError, msg: raise CompileError, msg
+
+class CudaExtension(Extension):
+    def __init__(self, name, sources, **kwargs):
+        Extension.__init__(self, name, sources, **kwargs)
+        is64 = platform.architecture()[0].startswith('64')
+        self.libraries.append('cudart')
+        self.libraries.append('cufft')
+        self.include_dirs.append(os.path.join(CUDA_DIR, 'include'))
+        if is64 and os.path.exists(os.path.join(CUDA_DIR,'lib64')):
+            self.library_dirs.append(os.path.join(CUDA_DIR,'lib64'))
+        else: self.library_dirs.append(os.path.join(CUDA_DIR, 'lib'))
+        try: self.cuda_sources = kwargs.pop('cuda_sources')
+        except(KeyError): self.cuda_sources = []
+        try: self.cuda_extra_compile_args = kwargs.pop('cuda_extra_compile_args')
+        except(KeyError): self.cuda_extra_compile_args = []
+        # NVCC wants us to call out 64/32-bit compiling explicitly
+        if is64: self.cuda_extra_compile_args.append('-m64')
+        else: self.cuda_extra_compile_args.append('-m32')
+        self.cuda_extra_compile_args.append('-Xcompiler')
+        self.cuda_extra_compile_args.append('-fPIC')
+        #self.cuda_extra_compile_args.append('-g')
+        #self.cuda_extra_compile_args.append('-G')
+        #self.cuda_extra_compile_args.append('-arch=sm_35')
+        self.cuda_extra_compile_args.append('-arch=sm_30')
+        
+class cuda_build_ext(build_ext):
+    def build_extension(self, ext):
+        if isinstance(ext, CudaExtension):
+            log.info("pre-building '%s' CudaExtension using nvcc", ext.name)
+            compiler = CudaCompiler()
+            objects = compiler.compile(ext.cuda_sources, output_dir=self.build_temp,
+                extra_postargs=ext.cuda_extra_compile_args)
+            ext.extra_objects += objects
+        build_ext.build_extension(self, ext)
 
 setup(name = 'aipy',
     version = __version__,
@@ -82,6 +137,9 @@ setup(name = 'aipy',
                 'src/_miriad/mir']),
         Extension('aipy._deconv', ['src/_deconv/deconv.cpp'],
             include_dirs = [numpy.get_include()]),
+        CudaExtension('aipy._deconvGPU', ['src/_deconvGPU/wrap_deconv.cpp'],
+            cuda_sources = ['src/_deconvGPU/deconv.cu'],
+            include_dirs = ['src/_deconvGPU', numpy.get_include()],),
         #Extension('aipy._img', ['src/_img/img.cpp'],
         #    include_dirs = [numpy.get_include()]),
         Extension('aipy._dsp', ['src/_dsp/dsp.c', 'src/_dsp/grid/grid.c'],
@@ -96,4 +154,5 @@ setup(name = 'aipy',
     ],
     scripts=glob.glob('scripts/*'),
     package_data = {'aipy': ['_src/*.txt']},
+    cmdclass = {'build_ext': cuda_build_ext},
 )

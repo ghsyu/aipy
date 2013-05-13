@@ -285,6 +285,7 @@ template<typename T> struct Clean {
             mmax = -1;
             stepr = (T) gain * (maxr * qr - maxi * qi);
             stepi = (T) gain * (maxr * qi + maxi * qr);
+           // printf("(%d, %d) (%f, %f)\n", argmax1, argmax2, maxr, maxi);
             CIND2R(mdl,argmax1,argmax2,T) += stepr;
             CIND2I(mdl,argmax1,argmax2,T) += stepi;
             // Take next step and compute score
@@ -307,9 +308,7 @@ template<typename T> struct Clean {
                     }
                 }
             }
-	    printf("res[0,0]: %f\nres[1,0]: %f\n",CIND2R(res,0,0,float),CIND2R(res,1,0,float));
             nscore = sqrt(nscore / (dim1 * dim2));
-	    printf("nscore: %f\n", nscore);
             if (firstscore < 0) firstscore = nscore;
             if (verb != 0)
                 printf("Iter %d: Max=(%d,%d), Score = %f, Prev = %f\n", \
@@ -354,7 +353,6 @@ template<typename T> struct Clean {
                 i = 0;  // Reset maxiter counter
             }
             score = nscore;
-	    printf("argmax: (%u, %u)\n", argmax1, argmax2);
             argmax1 = nargmax1; argmax2 = nargmax2;
         }
         // If we end on maxiter, then make sure mdl/res reflect best score
