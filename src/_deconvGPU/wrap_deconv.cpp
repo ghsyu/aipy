@@ -54,7 +54,6 @@ static int clean_2d_c(PyArrayObject *res, PyArrayObject *ker,
     float *best_mdl=NULL, *best_res=NULL;
     float *dev_ker, *dev_res, *g_nscore_i, *g_max_i, *g_nscore_o, *g_max_o;
     int *dev_area, *g_max_idx_i, *g_max_idx_o;
-    cudaSetDevice(1);
     if (!stop_if_div) {
         best_mdl = (float *)malloc(2*dim1*dim2*sizeof(float));
         best_res = (float *)malloc(2*dim1*dim2*sizeof(float));
