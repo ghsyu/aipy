@@ -3,14 +3,14 @@ import pynvml as nv
 
 
 def set_mode(mode):
-    pynvml.nvmlInit()
+    nv.nvmlInit()
     compute_modes = []
     #Set all devices available to Compute exclusive
-    for i in range(pynvml.nvmlDeviceGetCount()):
-        handle = pynvml.nvmlDeviceGetHandleByIndex(i)
-        compute_modes.append(pynvml.nvmlDeviceGetComputeMode(handle))
-        pynvml.nvmlDeviceSetComputeMode(handle, mode)
-    pynvml.nvmlShutdown()
+    for i in range(nv.nvmlDeviceGetCount()):
+        handle = nv.nvmlDeviceGetHandleByIndex(i)
+        compute_modes.append(nv.nvmlDeviceGetComputeMode(handle))
+        nv.nvmlDeviceSetComputeMode(handle, mode)
+    nv.nvmlShutdown()
     
 if __name__ == '__main__':
     import sys
