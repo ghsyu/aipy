@@ -88,7 +88,7 @@ static int clean_2d_c(PyArrayObject *res, PyArrayObject *ker,
         CIND2I(mdl,argmax1,argmax2,float) += stepi;
         // Take next step and compute score
         clean_2d_c_GPU((float *)PyArray_DATA(res), (float *)PyArray_DATA(ker), (int *)PyArray_DATA(area), \
-                    gain, maxiter, stop_if_div, stepr, stepi, argmax1, argmax2, \
+                    gain, stop_if_div, stepr, stepi, argmax1, argmax2, \
                     PyArray_NBYTES(ker), PyArray_NBYTES(res), PyArray_NBYTES(area), dim1, dim2, \
                     &nscore, &maxr, &maxi, &nargmax1, &nargmax2, \
                     dev_ker, dev_res, dev_area, \

@@ -6,7 +6,6 @@ import aipy.deconv as d1
 import aipy.deconvGPU as d2
 import threading
 import cProfile
-import pynvml
 
 SIZEX = 1024
 SIZEY = 2048
@@ -30,18 +29,6 @@ class Test(threading.Thread):
             self.cim, self.info = d2.clean(self.dim, self.dbm, tol=1e-5, stop_if_div=True, maxiter=1000)
     
 if __name__ == '__main__':
-    '''pynvml.nvmlInit()
-    compute_modes = []
-    #Set all devices available to Compute exclusive
-    for i in range(pynvml.nvmlDeviceGetCount()):
-        handle = pynvml.nvmlDeviceGetHandleByIndex(i)
-        compute_modes.append(pynvml.nvmlDeviceGetComputeMode(handle))
-        pynvml.nvmlDeviceSetComputeMode(handle, 1)
-    
-    def profile():
-        A = Test()
-        A.run(10)
-    '''
     
     t0 = Test(2)
     t1 = Test(2)

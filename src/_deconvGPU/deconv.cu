@@ -164,7 +164,7 @@ int copy_res(float *res, float *dev_res, int res_len){
 //  \____|_|\___|\__,_|_| |_|_____\__,_|\___|  
 // Does a 2d complex-valued clean
 float *clean_2d_c_GPU(float *res, float *ker, int * area, \
-        double gain, int maxiter, \
+        double gain, \
         int stop_if_div, \
         float stepr, float stepi, int argmax1, int argmax2, \
         int ker_len, int res_len, int area_len, int dim1, int dim2,
@@ -184,6 +184,7 @@ float *clean_2d_c_GPU(float *res, float *ker, int * area, \
     
     int smemsize = 3*BLOCKSIZEX*BLOCKSIZEY*sizeof(float)+2*BLOCKSIZEX*BLOCKSIZEY*sizeof(int);
     // Take next step and compute score
+    printf("Starting GPU code\n");
     clean2dc<<<grid, blocksize, smemsize>>>(dim1, dim2, argmax1, argmax2, stepr, \
                                 stepi, dev_ker, dev_res, dev_area, g_nscore_i, g_max_i, g_max_idx_i);
     //Make the kernel invocation 1D
