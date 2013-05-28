@@ -27,7 +27,12 @@ class Test(threading.Thread):
     def run(self):
         for i in xrange(self.iterations):
             self.cim, self.info = d2.clean(self.dim, self.dbm, tol=1e-5, stop_if_div=True, maxiter=1000)
-    
+
+class FastTest(Test):
+    def run(self):
+        for i in xrange(self.iterations):
+            self.cim, self.info = d2.clean(self.dim, self.dbm, tol=1e-5, stop_if_dev=True, maxiter = 10)
+
 if __name__ == '__main__':
     
     t0 = Test(2)

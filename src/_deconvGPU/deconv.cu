@@ -10,8 +10,9 @@
 #include <cuda_runtime_api.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 __global__ void sum_max(unsigned int n, float *g_nscore_i, float *g_max_i, int* g_max_idx_i, \
-                        float *g_nscore_o, float *g_max_o, int *g_max_idx_o){
+                     float *g_nscore_o, float *g_max_o, int *g_max_idx_o){
     extern __shared__ float smem[];
     float *s_nscore = smem;
     float *s_max    = &s_nscore[blockDim.x];
@@ -184,7 +185,7 @@ float *clean_2d_c_GPU(float *res, float *ker, int * area, \
     
     int smemsize = 3*BLOCKSIZEX*BLOCKSIZEY*sizeof(float)+2*BLOCKSIZEX*BLOCKSIZEY*sizeof(int);
     // Take next step and compute score
-    printf("Starting GPU code\n");
+    printf("Starting GPU code at click %d, (%d per sec)\n", clock(), CLOCKS_PER_SEC);
     clean2dc<<<grid, blocksize, smemsize>>>(dim1, dim2, argmax1, argmax2, stepr, \
                                 stepi, dev_ker, dev_res, dev_area, g_nscore_i, g_max_i, g_max_idx_i);
     //Make the kernel invocation 1D
