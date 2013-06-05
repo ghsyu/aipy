@@ -17,7 +17,7 @@ float *clean_2d_c_GPU(float *, float *, int *, double, int, \
 int gpu_set_up(float **, float **, int **, \
                float **, float **, int **, \
                float **, float **, int **, \
-               float *, float *, int *, int, int, int, int, int);
+               float *, float *, int *, int, int, int, int, int, int);
 	
 
 int gpu_free(float *, float *, int *, \

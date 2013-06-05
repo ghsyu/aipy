@@ -8,6 +8,7 @@
 #include <Python.h>
 #include "numpy/arrayobject.h"
 #include "deconv.h"
+#include <future.h>
 
 #define QUOTE(s) # s
 
@@ -44,7 +45,7 @@
 
 static int clean_2d_c(PyArrayObject *res, PyArrayObject *ker,
         PyArrayObject *mdl, PyArrayObject *area, double gain, int maxiter, double tol,
-        int stop_if_div, int verb, int pos_def) {
+        int stop_if_div, int verb, int pos_def, int device) {
     float maxr=0, maxi=0, valr, vali, stepr, stepi, qr=0, qi=0;
     float score=-1, nscore, best_score=-1;
     float mmax, mval, mq=0;
@@ -77,7 +78,7 @@ static int clean_2d_c(PyArrayObject *res, PyArrayObject *ker,
                &g_nscore_i, &g_max_i, &g_max_idx_i, \
                &g_nscore_o, &g_max_o, &g_max_idx_o, \
                (float *)PyArray_DATA(ker), (float *)PyArray_DATA(res), (int *)PyArray_DATA(area), \
-                dim1, dim2, PyArray_NBYTES(ker), PyArray_NBYTES(res), PyArray_NBYTES(area));
+                dim1, dim2, PyArray_NBYTES(ker), PyArray_NBYTES(res), PyArray_NBYTES(area), device);
     for (int i=0; i < maxiter; i++) {
         nscore = 0;
         mmax = -1;
@@ -171,13 +172,13 @@ static int clean_2d_c(PyArrayObject *res, PyArrayObject *ker,
 PyObject *clean(PyObject *self, PyObject *args, PyObject *kwargs) {
     PyArrayObject *res, *ker, *mdl, *area;
     double gain=.1, tol=.001;
-    int maxiter=200, rank=0, dim1, dim2, rv, stop_if_div=0, verb=0, pos_def=0;
+    int maxiter=200, rank=0, dim1, dim2, rv, stop_if_div=0, verb=0, pos_def=0, device=0;
     static char *kwlist[] = {"res", "ker", "mdl", "area", "gain", \
-                             "maxiter", "tol", "stop_if_div", "verbose","pos_def", NULL};
+                             "maxiter", "tol", "stop_if_div", "verbose","pos_def", "device", NULL};
     // Parse arguments and perform sanity check
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O!O!O!O!|didiii", kwlist, \
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O!O!O!O!|didiiii", kwlist, \
             &PyArray_Type, &res, &PyArray_Type, &ker, &PyArray_Type, &mdl, &PyArray_Type, &area, 
-            &gain, &maxiter, &tol, &stop_if_div, &verb, &pos_def)) 
+            &gain, &maxiter, &tol, &stop_if_div, &verb, &pos_def, &device)) 
         return NULL;
     if (RANK(res) == 1) {
         rank = 1;
@@ -211,7 +212,9 @@ PyObject *clean(PyObject *self, PyObject *args, PyObject *kwargs) {
     // Use template to implement data loops for all data types
 
     if (TYPE(res) == NPY_CFLOAT && rank == 2) {
-            rv = clean_2d_c(res,ker,mdl,area,gain,maxiter,tol,stop_if_div,verb,pos_def);
+		auto future = async(launch::async, clean_2d_c, res,ker,mdl,area,gain,maxiter,tol,stop_if_div,verb,pos_def,device);
+		auto future2 = async(launch::async, clean_2d_c, res,ker,mdl,area,gain,maxiter,tol,stop_if_div,verb,pos_def,1);
+		rv = future.get();
     } else {
         PyErr_Format(PyExc_ValueError, "Unsupported data type.");
         return NULL;

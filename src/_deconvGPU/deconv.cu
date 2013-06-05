@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
+
 __global__ void sum_max(unsigned int n, float *g_nscore_i, float *g_max_i, int* g_max_idx_i, \
                      float *g_nscore_o, float *g_max_o, int *g_max_idx_o){
     extern __shared__ float smem[];
@@ -124,7 +125,8 @@ __global__ void clean2dc(unsigned int dim1, unsigned int dim2, unsigned int argm
 int gpu_set_up(float **dev_ker,    float **dev_res, int **dev_area, \
                float **g_nscore_i, float **g_max_i, int **g_max_idx_i, \
                float **g_nscore_o, float **g_max_o, int **g_max_idx_o, \
-               float *ker, float *res, int *area, int dim1, int dim2, int ker_len, int res_len, int area_len){
+               float *ker, float *res, int *area, int dim1, int dim2, int ker_len, int res_len, int area_len, int device){
+    cudaSetDevice(device);
     cudaMalloc((void**) dev_ker,      ker_len);
     cudaMalloc((void**) dev_res,      res_len);
     cudaMalloc((void**) dev_area,     area_len);
@@ -185,7 +187,6 @@ float *clean_2d_c_GPU(float *res, float *ker, int * area, \
     
     int smemsize = 3*BLOCKSIZEX*BLOCKSIZEY*sizeof(float)+2*BLOCKSIZEX*BLOCKSIZEY*sizeof(int);
     // Take next step and compute score
-    printf("Starting GPU code at click %d, (%d per sec)\n", clock(), CLOCKS_PER_SEC);
     clean2dc<<<grid, blocksize, smemsize>>>(dim1, dim2, argmax1, argmax2, stepr, \
                                 stepi, dev_ker, dev_res, dev_area, g_nscore_i, g_max_i, g_max_idx_i);
     //Make the kernel invocation 1D
