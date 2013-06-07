@@ -9,6 +9,8 @@
 #include "numpy/arrayobject.h"
 #include "deconv.h"
 #include <future>
+#include <iostream>
+#include <vector>
 
 #define QUOTE(s) # s
 
@@ -169,11 +171,12 @@ static int clean_2d_c(PyArrayObject *res, PyArrayObject *ker,
 
 // Clean wrapper that handles all different data types and dimensions
 PyObject *clean(PyObject *self, PyObject *args, PyObject *kwargs) {
-    PyArrayObject /* *res*/, *res_l, *ker,/* *mdl, */*mdl_l, *area, *devices;
+    PyArrayObject *res, *res_l, *ker, *mdl, *mdl_l, *area, *devices;
 	PyObject *seq0, *seq1, *seq2;
 	int len, dev;
     double gain=.1, tol=.001;
     int maxiter=200, rank=0, dim1, dim2, rv, stop_if_div=0, verb=0, pos_def=0;
+	std::vector<std::future<int>> futures;
     static char *kwlist[] = {"res_l", "ker", "mdl_l", "area", "gain", \
                              "maxiter", "tol", "stop_if_div", "verbose","pos_def", "devices", NULL};
     // Parse arguments and perform sanity check
@@ -188,8 +191,8 @@ PyObject *clean(PyObject *self, PyObject *args, PyObject *kwargs) {
 	
     len  = PySequence_Size((PyObject *)mdl_l);
     for (int i = 0; i < len; i++) {
-        PyArrayObject *mdl = (PyArrayObject *) PySequence_Fast_GET_ITEM(seq0, i);
-		PyArrayObject *res = (PyArrayObject *) PySequence_Fast_GET_ITEM(seq1, i);
+        mdl = (PyArrayObject *) PySequence_Fast_GET_ITEM(seq0, i);
+		res = (PyArrayObject *) PySequence_Fast_GET_ITEM(seq1, i);
 		dev = (int) PyInt_AsLong(PySequence_Fast_GET_ITEM(seq2, i));
 		if (RANK(res) == 1) {
 			rank = 1;
@@ -222,8 +225,8 @@ PyObject *clean(PyObject *self, PyObject *args, PyObject *kwargs) {
 		Py_INCREF(res); Py_INCREF(ker); Py_INCREF(mdl);
 		
 		if (TYPE(res) == NPY_CFLOAT && rank == 2) {
-			auto future = async(std::launch::async, clean_2d_c, res,ker,mdl,area,gain,maxiter,tol,stop_if_div,verb,pos_def,dev);
-			//rv = future.get();
+			futures.push_back(async(std::launch::async, clean_2d_c, res,ker,mdl,area,gain,maxiter,tol,stop_if_div,verb,pos_def,dev));
+			
 		} else {
 			PyErr_Format(PyExc_ValueError, "Unsupported data type.");
 			return NULL;
@@ -233,7 +236,10 @@ PyObject *clean(PyObject *self, PyObject *args, PyObject *kwargs) {
     Py_DECREF(seq0);
 	Py_DECREF(seq1);
 	Py_DECREF(seq2);
-	rv = future.get()
+	for (auto &e : futures){
+		rv = e.get();
+    }
+	// XXX Return value is right now return value of last thread launched,
     return Py_BuildValue("i", rv);
 }
 
