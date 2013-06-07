@@ -8,7 +8,7 @@
 #include <Python.h>
 #include "numpy/arrayobject.h"
 #include "deconv.h"
-#include <future.h>
+#include <future>
 
 #define QUOTE(s) # s
 
@@ -48,7 +48,7 @@ static int clean_2d_c(PyArrayObject *res, PyArrayObject *ker,
         int stop_if_div, int verb, int pos_def, int device) {
     float maxr=0, maxi=0, valr, vali, stepr, stepi, qr=0, qi=0;
     float score=-1, nscore, best_score=-1;
-    float mmax, mval, mq=0;
+    float mval, mq=0;
     float firstscore=-1;
     int argmax1=0, argmax2=0, nargmax1=0, nargmax2=0;
     int dim1=DIM(res,0), dim2=DIM(res,1), wrap_n1, wrap_n2;
@@ -81,7 +81,6 @@ static int clean_2d_c(PyArrayObject *res, PyArrayObject *ker,
                 dim1, dim2, PyArray_NBYTES(ker), PyArray_NBYTES(res), PyArray_NBYTES(area), device);
     for (int i=0; i < maxiter; i++) {
         nscore = 0;
-        mmax = -1;
         stepr = (float) gain * (maxr * qr - maxi * qi);
         stepi = (float) gain * (maxr * qi + maxi * qr);
 	
@@ -170,56 +169,71 @@ static int clean_2d_c(PyArrayObject *res, PyArrayObject *ker,
 
 // Clean wrapper that handles all different data types and dimensions
 PyObject *clean(PyObject *self, PyObject *args, PyObject *kwargs) {
-    PyArrayObject *res, *ker, *mdl, *area;
+    PyArrayObject /* *res*/, *res_l, *ker,/* *mdl, */*mdl_l, *area, *devices;
+	PyObject *seq0, *seq1, *seq2;
+	int len, dev;
     double gain=.1, tol=.001;
-    int maxiter=200, rank=0, dim1, dim2, rv, stop_if_div=0, verb=0, pos_def=0, device=0;
-    static char *kwlist[] = {"res", "ker", "mdl", "area", "gain", \
-                             "maxiter", "tol", "stop_if_div", "verbose","pos_def", "device", NULL};
+    int maxiter=200, rank=0, dim1, dim2, rv, stop_if_div=0, verb=0, pos_def=0;
+    static char *kwlist[] = {"res_l", "ker", "mdl_l", "area", "gain", \
+                             "maxiter", "tol", "stop_if_div", "verbose","pos_def", "devices", NULL};
     // Parse arguments and perform sanity check
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "O!O!O!O!|didiiii", kwlist, \
-            &PyArray_Type, &res, &PyArray_Type, &ker, &PyArray_Type, &mdl, &PyArray_Type, &area, 
-            &gain, &maxiter, &tol, &stop_if_div, &verb, &pos_def, &device)) 
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO!OO!|didiiiO", kwlist, \
+            &res_l, &PyArray_Type, &ker, &mdl_l, &PyArray_Type, &area, 
+            &gain, &maxiter, &tol, &stop_if_div, &verb, &pos_def, &devices)) 
         return NULL;
-    if (RANK(res) == 1) {
-        rank = 1;
-        CHK_ARRAY_RANK(ker, 1); CHK_ARRAY_RANK(mdl, 1); CHK_ARRAY_RANK(area, 1);
-        dim1 = DIM(res,0);
-        CHK_ARRAY_DIM(ker, 0, dim1); CHK_ARRAY_DIM(mdl, 0, dim1); CHK_ARRAY_DIM(area, 0, dim1);
-    } else if (RANK(res) == 2) {
-        rank = 2;
-        CHK_ARRAY_RANK(ker, 2); CHK_ARRAY_RANK(mdl, 2); CHK_ARRAY_RANK(area, 2);
-        dim1 = DIM(res,0); dim2 = DIM(res,1);
-        CHK_ARRAY_DIM(ker, 0, dim1); CHK_ARRAY_DIM(mdl, 0, dim1); CHK_ARRAY_DIM(area, 0, dim1);
-        CHK_ARRAY_DIM(ker, 1, dim2); CHK_ARRAY_DIM(mdl, 1, dim2); CHK_ARRAY_DIM(area, 1, dim2);
-    }
-    if (TYPE(res) != TYPE(ker) || TYPE(res) != TYPE(mdl)) {
-        PyErr_Format(PyExc_ValueError, "array types must match");
-        return NULL;
-    }
-    if (!(PyArray_ISCARRAY(res) && PyArray_ISONESEGMENT(res))) {
-        PyErr_Format(PyExc_ValueError, "array must be aligned and one segment");
-        return NULL;
-    }
-    if (!(PyArray_ISCARRAY(ker) && PyArray_ISONESEGMENT(ker))) {
-        PyErr_Format(PyExc_ValueError, "Kernel array must be aligned and one segment");
-        return NULL;
-    }
-    if (TYPE(area) != NPY_INT32) {
-        PyErr_Format(PyExc_ValueError, "area must be of type 'int32'");
-        return NULL;
-    }
-    Py_INCREF(res); Py_INCREF(ker); Py_INCREF(mdl);
-    // Use template to implement data loops for all data types
-
-    if (TYPE(res) == NPY_CFLOAT && rank == 2) {
-		auto future = async(launch::async, clean_2d_c, res,ker,mdl,area,gain,maxiter,tol,stop_if_div,verb,pos_def,device);
-		auto future2 = async(launch::async, clean_2d_c, res,ker,mdl,area,gain,maxiter,tol,stop_if_div,verb,pos_def,1);
-		rv = future.get();
-    } else {
-        PyErr_Format(PyExc_ValueError, "Unsupported data type.");
-        return NULL;
-    }
-    Py_DECREF(res); Py_DECREF(ker); Py_DECREF(mdl);
+	
+    seq0 = PySequence_Fast((PyObject *)mdl_l, "expected a sequence");
+	seq1 = PySequence_Fast((PyObject *)res_l, "expected a sequence");
+	seq2 = PySequence_Fast((PyObject *)devices, "expected a sequence");
+	
+    len  = PySequence_Size((PyObject *)mdl_l);
+    for (int i = 0; i < len; i++) {
+        PyArrayObject *mdl = (PyArrayObject *) PySequence_Fast_GET_ITEM(seq0, i);
+		PyArrayObject *res = (PyArrayObject *) PySequence_Fast_GET_ITEM(seq1, i);
+		dev = (int) PyInt_AsLong(PySequence_Fast_GET_ITEM(seq2, i));
+		if (RANK(res) == 1) {
+			rank = 1;
+			CHK_ARRAY_RANK(ker, 1); CHK_ARRAY_RANK(mdl, 1); CHK_ARRAY_RANK(area, 1);
+			dim1 = DIM(res,0);
+			CHK_ARRAY_DIM(ker, 0, dim1); CHK_ARRAY_DIM(mdl, 0, dim1); CHK_ARRAY_DIM(area, 0, dim1);
+		} else if (RANK(res) == 2) {
+			rank = 2;
+			CHK_ARRAY_RANK(ker, 2); CHK_ARRAY_RANK(mdl, 2); CHK_ARRAY_RANK(area, 2);
+			dim1 = DIM(res,0); dim2 = DIM(res,1);
+			CHK_ARRAY_DIM(ker, 0, dim1); CHK_ARRAY_DIM(mdl, 0, dim1); CHK_ARRAY_DIM(area, 0, dim1);
+			CHK_ARRAY_DIM(ker, 1, dim2); CHK_ARRAY_DIM(mdl, 1, dim2); CHK_ARRAY_DIM(area, 1, dim2);
+		}
+		if (TYPE(res) != TYPE(ker) || TYPE(res) != TYPE(mdl)) {
+			PyErr_Format(PyExc_ValueError, "array types must match");
+			return NULL;
+		}
+		if (!(PyArray_ISCARRAY(res) && PyArray_ISONESEGMENT(res))) {
+			PyErr_Format(PyExc_ValueError, "array must be aligned and one segment");
+			return NULL;
+		}
+		if (!(PyArray_ISCARRAY(ker) && PyArray_ISONESEGMENT(ker))) {
+			PyErr_Format(PyExc_ValueError, "Kernel array must be aligned and one segment");
+			return NULL;
+		}
+		if (TYPE(area) != NPY_INT32) {
+			PyErr_Format(PyExc_ValueError, "area must be of type 'int32'");
+			return NULL;
+		}
+		Py_INCREF(res); Py_INCREF(ker); Py_INCREF(mdl);
+		
+		if (TYPE(res) == NPY_CFLOAT && rank == 2) {
+			auto future = async(std::launch::async, clean_2d_c, res,ker,mdl,area,gain,maxiter,tol,stop_if_div,verb,pos_def,dev);
+			//rv = future.get();
+		} else {
+			PyErr_Format(PyExc_ValueError, "Unsupported data type.");
+			return NULL;
+		}
+		Py_DECREF(res); Py_DECREF(ker); Py_DECREF(mdl);
+	}
+    Py_DECREF(seq0);
+	Py_DECREF(seq1);
+	Py_DECREF(seq2);
+	rv = future.get()
     return Py_BuildValue("i", rv);
 }
 
