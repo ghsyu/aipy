@@ -147,6 +147,7 @@ int gpu_free(float *dev_ker, float *dev_res, int *dev_area, \
              float *g_nscore_o, float *g_max_o, int *g_max_idx_o){
     cudaFree(dev_ker);
     cudaFree(dev_res);
+    cudaFree(dev_area);
     cudaFree(g_nscore_i);
     cudaFree(g_max_i);
     cudaFree(g_max_idx_i);
