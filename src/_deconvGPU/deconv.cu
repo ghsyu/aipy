@@ -197,7 +197,7 @@ float *clean_2d_c_GPU(float *res, float *ker, int * area, \
         gridsize = (len % bsize == 0) ? len/bsize : len/bsize + 1; //ceil(len/bsize)
         sum_max<<<gridsize, bsize, smemsize>>>(len, g_nscore_i, g_max_i, g_max_idx_i, g_nscore_o, g_max_o, g_max_idx_o);
         len = gridsize;
-        g_nscore_i  = g_nscore_o; 
+        g_nscore_i  = g_nscore_o;
         g_max_i     = g_max_o;
         g_max_idx_i = g_max_idx_o;
     }

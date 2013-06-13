@@ -23,13 +23,14 @@ class Test(object):
         self.dim = n.fft.ifft2(n.fft.fft2(self.aim) * n.fft.fft2(self.dbm)).astype(n.complex64)
         self.iterations = iterations
         self.devices = devices
+        self.ims = n.array([self.dim]*len(self.device))
     def run(self):
         for i in xrange(self.iterations):
-            self.cim, self.info = d2.clean(n.array([self.dim]*len(self.device)), self.dbm, tol=1e-5, stop_if_div=True, maxiter=1000, devices=self.device)
+            self.cim, self.info = d2.clean(self.ims, self.dbm, tol=1e-5, stop_if_div=True, maxiter=1000, devices=self.device)
 
 if __name__ == '__main__':
     
-    A = Test(2, [0,1,2,3])
+    A = Test(4, [0,1,2,3])
     start = time.time()
     A.run()
     print time.time()-start

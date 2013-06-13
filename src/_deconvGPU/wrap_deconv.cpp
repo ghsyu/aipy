@@ -115,6 +115,7 @@ static int clean_2d_c(PyArrayObject *res, PyArrayObject *ker,
                         CIND2I(res,wrap_n1,wrap_n2,float) += CIND2R(ker,n1,n2,float)*stepi + CIND2I(ker,n1,n2,float)*stepr;
                     }
                 }
+			    gpu_free(dev_ker, dev_res, dev_area, g_nscore_i, g_max_i, g_max_idx_i, g_nscore_o, g_max_o, g_max_idx_o);
                 return -i;
             } else if (best_score < 0 || score < best_score) {
                 // We've diverged: buf prev score in case it's global best
@@ -137,6 +138,7 @@ static int clean_2d_c(PyArrayObject *res, PyArrayObject *ker,
             // We're done
             copy_res((float *)PyArray_DATA(res), dev_res, PyArray_NBYTES(res));
             if (best_mdl != NULL) { free(best_mdl); free(best_res); }
+		    gpu_free(dev_ker, dev_res, dev_area, g_nscore_i, g_max_i, g_max_idx_i, g_nscore_o, g_max_o, g_max_idx_o);
             return i;
         } else if (not stop_if_div && (best_score < 0 || nscore < best_score)) {
             i = 0;  // Reset maxiter counter

@@ -27,5 +27,4 @@ int gpu_free(float *, float *, int *, \
 
 int copy_res(float *, float *, int );
 
-
 #endif /* _CLEAN_H_ */
