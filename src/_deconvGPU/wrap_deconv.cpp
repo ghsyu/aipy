@@ -177,7 +177,8 @@ PyObject *clean(PyObject *self, PyObject *args, PyObject *kwargs) {
 	PyObject *seq0, *seq1, *seq2;
 	int len, dev;
     double gain=.1, tol=.001;
-    int maxiter=200, rank=0, dim1, dim2, rv, stop_if_div=0, verb=0, pos_def=0;
+    int maxiter=200, rank=0, dim1, dim2, rv, stop_if_div=0, verb=0, pos_def=0;	
+	
 	std::vector<std::future<int>> futures;
     static char *kwlist[] = {"res_l", "ker", "mdl_l", "area", "gain", \
                              "maxiter", "tol", "stop_if_div", "verbose","pos_def", "devices", NULL};
@@ -190,9 +191,8 @@ PyObject *clean(PyObject *self, PyObject *args, PyObject *kwargs) {
     seq0 = PySequence_Fast((PyObject *)mdl_l, "expected a sequence");
 	seq1 = PySequence_Fast((PyObject *)res_l, "expected a sequence");
 	seq2 = PySequence_Fast((PyObject *)devices, "expected a sequence");
-	
     len  = PySequence_Size((PyObject *)mdl_l);
-    for (int i = 0; i < len; i++) {
+	for (int i = 0; i < len; i++) {
         mdl = (PyArrayObject *) PySequence_Fast_GET_ITEM(seq0, i);
 		res = (PyArrayObject *) PySequence_Fast_GET_ITEM(seq1, i);
 		dev = (int) PyInt_AsLong(PySequence_Fast_GET_ITEM(seq2, i));
@@ -235,14 +235,21 @@ PyObject *clean(PyObject *self, PyObject *args, PyObject *kwargs) {
 		}
 		Py_DECREF(res); Py_DECREF(ker); Py_DECREF(mdl);
 	}
-    Py_DECREF(seq0);
+	Py_DECREF(seq0);
 	Py_DECREF(seq1);
 	Py_DECREF(seq2);
+	
+	PyObject *rv_lst = PyList_New(len);
+	if (!rv_lst){
+		return NULL;
+	}
+	int j = 0;
 	for (auto &e : futures){
 		rv = e.get();
+		PyList_SetItem(rv_lst, j, Py_BuildValue("i", rv));
+		j++;
     }
-	// XXX Return value is right now return value of last thread launched,
-    return Py_BuildValue("i", rv);
+    return rv_lst;
 }
 
 // Wrap function into module

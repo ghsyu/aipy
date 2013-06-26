@@ -136,9 +136,9 @@ int gpu_set_up(float **dev_ker,    float **dev_res, int **dev_area, \
     cudaMalloc((void**) g_nscore_o,   sizeof(float)*dim1*dim2);
     cudaMalloc((void**) g_max_o,      2*sizeof(float)*dim1*dim2);
     cudaMalloc((void**) g_max_idx_o,  2*sizeof(int)*dim1*dim2);
-    cudaMemcpy(*dev_ker,      ker,      ker_len,       cudaMemcpyHostToDevice);
-    cudaMemcpy(*dev_res,      res,      res_len,       cudaMemcpyHostToDevice);
-    cudaMemcpy(*dev_area,     area,     area_len,      cudaMemcpyHostToDevice);
+    cudaMemcpy(*dev_ker,  ker,  ker_len,  cudaMemcpyHostToDevice);
+    cudaMemcpy(*dev_res,  res,  res_len,  cudaMemcpyHostToDevice);
+    cudaMemcpy(*dev_area, area, area_len, cudaMemcpyHostToDevice);
     return 0;
 }
 
@@ -167,7 +167,7 @@ int copy_res(float *res, float *dev_res, int res_len){
 // | |___| |  __/ (_| | | | |/ __/ (_| | (__ 
 //  \____|_|\___|\__,_|_| |_|_____\__,_|\___|  
 // Does a 2d complex-valued clean
-float *clean_2d_c_GPU(float *res, float *ker, int * area, \
+int clean_2d_c_GPU(float *res, float *ker, int * area, \
         double gain, \
         int stop_if_div, \
         float stepr, float stepi, int argmax1, int argmax2, \

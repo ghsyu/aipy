@@ -35,6 +35,7 @@ def clean(ims, ker, mdl=None, area=None, devices=[0, 1, 2, 3], gain=.1, maxiter=
         raise ValueError('number of images must equal number of devices')
     mdl_l = []
     res_l = []
+    info_l = []
     ims = iter(ims)
     for device in devices:
         im = ims.next()
@@ -61,17 +62,18 @@ def clean(ims, ker, mdl=None, area=None, devices=[0, 1, 2, 3], gain=.1, maxiter=
             stop_if_div=int(stop_if_div), verbose=int(verbose),
             pos_def=int(pos_def), devices=devices)
     score = n.sqrt(n.average(n.abs(res)**2))
-    info = {'success':_iter > 0 and _iter < maxiter, 'tol':tol}
-    if _iter < 0: info.update({'term':'divergence', 'iter':-_iter})
-    elif _iter < maxiter: info.update({'term':'tol', 'iter':_iter})
-    else: info.update({'term':'maxiter', 'iter':_iter})
-    info.update({'res':res, 'score':score})
-    if verbose:
-        print 'Term Condition:', info['term']
-        print 'Iterations:', info['iter']
-        print 'Score:', info['score']
-        
-    return mdl_l, info
+    for i in _iter:
+        info = {'success':i > 0 and i < maxiter, 'tol':tol}
+        if i < 0: info.update({'term':'divergence', 'iter':-i})
+        elif i < maxiter: info.update({'term':'tol', 'iter':i})
+        else: info.update({'term':'maxiter', 'iter':i})
+        info.update({'res':res, 'score':score})
+        if verbose:
+            print 'Term Condition:', info['term']
+            print 'Iterations:', info['iter']
+            print 'Score:', info['score']
+        info_l.append(info)
+    return mdl_l, info_l
 
 def recenter(a, c):
     """Slide the (0,0) point of matrix a to a new location tuple c."""
