@@ -265,4 +265,4 @@ def anneal(im, ker, mdl=None, maxiter=1000, lower=lo_clip_lev, upper=n.Inf,
         if verbose: print 'Step %d:' % i, n_score, score
         if n_score < score: mdl, dif, score = n_mdl, n_dif, n_score
     info.update({'res':dif, 'score': score, 'iter':i+1})
-    return mdl, info
+/    return mdl, info

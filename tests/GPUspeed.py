@@ -30,7 +30,7 @@ class Test(object):
 
 if __name__ == '__main__':
     
-    A = Test(4, [0,1,2,3])
+    A = Test(4, [0,1])
     start = time.time()
     A.run()
     print time.time()-start

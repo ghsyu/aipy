@@ -180,22 +180,24 @@ PyObject *clean(PyObject *self, PyObject *args, PyObject *kwargs) {
     int maxiter=200, rank=0, dim1, dim2, rv, stop_if_div=0, verb=0, pos_def=0;	
 	
 	std::vector<std::future<int>> futures;
-    static char *kwlist[] = {"res_l", "ker", "mdl_l", "area", "gain", \
+    static char *kwlist[] = {"res_l", "ker_l", "mdl_l", "area", "gain", \
                              "maxiter", "tol", "stop_if_div", "verbose","pos_def", "devices", NULL};
     // Parse arguments and perform sanity check
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OO!OO!|didiiiO", kwlist, \
-            &res_l, &PyArray_Type, &ker, &mdl_l, &PyArray_Type, &area, 
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OOOO!|didiiiO", kwlist, \
+            &res_l, &ker_l, &mdl_l, &PyArray_Type, &area, 
             &gain, &maxiter, &tol, &stop_if_div, &verb, &pos_def, &devices)) 
         return NULL;
 	
     seq0 = PySequence_Fast((PyObject *)mdl_l, "expected a sequence");
 	seq1 = PySequence_Fast((PyObject *)res_l, "expected a sequence");
-	seq2 = PySequence_Fast((PyObject *)devices, "expected a sequence");
+	seq2 = PySequence_Fast((PyObject *)ker_l, "expected a sequence");
+	seq3 = PySequence_Fast((PyObject *)devices, "expected a sequence");
     len  = PySequence_Size((PyObject *)mdl_l);
 	for (int i = 0; i < len; i++) {
         mdl = (PyArrayObject *) PySequence_Fast_GET_ITEM(seq0, i);
 		res = (PyArrayObject *) PySequence_Fast_GET_ITEM(seq1, i);
-		dev = (int) PyInt_AsLong(PySequence_Fast_GET_ITEM(seq2, i));
+		ker = (PyArrayObject *) PySequence_Fast_GET_ITEM(seq2, i);
+		dev = (int) PyInt_AsLong(PySequence_Fast_GET_ITEM(seq3, i));
 		if (RANK(res) == 1) {
 			rank = 1;
 			CHK_ARRAY_RANK(ker, 1); CHK_ARRAY_RANK(mdl, 1); CHK_ARRAY_RANK(area, 1);
@@ -238,9 +240,11 @@ PyObject *clean(PyObject *self, PyObject *args, PyObject *kwargs) {
 	Py_DECREF(seq0);
 	Py_DECREF(seq1);
 	Py_DECREF(seq2);
+	Py_DECREF(seq3);
 	
 	PyObject *rv_lst = PyList_New(len);
 	if (!rv_lst){
+		PyErr_Format(PyExc_ValueError, "a");
 		return NULL;
 	}
 	int j = 0;

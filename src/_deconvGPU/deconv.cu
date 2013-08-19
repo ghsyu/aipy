@@ -84,10 +84,10 @@ __global__ void clean2dc(unsigned int dim1, unsigned int dim2, unsigned int argm
         res[2*(wrap_n1*dim2 + wrap_n2) + 1] -= (ker[2*(i)] * stepi + ker[2*(i)+1] * stepr); 
         valr = res[2*(wrap_n1*dim2 + wrap_n2)];
         vali = res[2*(wrap_n1*dim2 + wrap_n2) + 1];
-        s_nscore[tid] = valr*valr+vali*vali;
-        s_max[2*tid] = valr;
-        s_max[2*tid+1] = vali;
-        s_max_idx[2*tid] = wrap_n1;
+        s_nscore[tid]      = valr*valr+vali*vali;
+        s_max[2*tid]       = valr;
+        s_max[2*tid+1]     = vali;
+        s_max_idx[2*tid]   = wrap_n1;
         s_max_idx[2*tid+1] = wrap_n2;
     } else{
         s_nscore[tid]      = 0;
@@ -206,7 +206,7 @@ int clean_2d_c_GPU(float *res, float *ker, int * area, \
     cudaMemcpy(max_idx_p, g_max_idx_o, 2*sizeof(int), cudaMemcpyDeviceToHost);
     *nargmax1_p = max_idx_p[0];
     *nargmax2_p = max_idx_p[1];
-    *maxr_p = max_p[0];
-    *maxi_p = max_p[1];
+    *maxr_p     = max_p[0];
+    *maxi_p     = max_p[1];
     return 0;
 }
