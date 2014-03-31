@@ -173,8 +173,8 @@ static int clean_2d_c(PyArrayObject *res, PyArrayObject *ker,
 
 // Clean wrapper that handles all different data types and dimensions
 PyObject *clean(PyObject *self, PyObject *args, PyObject *kwargs) {
-    PyArrayObject *res, *res_l, *ker, *mdl, *mdl_l, *area, *devices;
-	PyObject *seq0, *seq1, *seq2;
+    PyArrayObject *res, *res_l, *ker, *ker_l, *mdl, *mdl_l, *area, *devices;
+	PyObject *seq0, *seq1, *seq2, *seq3;
 	int len, dev;
     double gain=.1, tol=.001;
     int maxiter=200, rank=0, dim1, dim2, rv, stop_if_div=0, verb=0, pos_def=0;	
@@ -228,7 +228,7 @@ PyObject *clean(PyObject *self, PyObject *args, PyObject *kwargs) {
 		}
 		Py_INCREF(res); Py_INCREF(ker); Py_INCREF(mdl);
 		
-		if (TYPE(res) == NPY_CFLOAT && rank == 2) {
+		if (TYPE(res) == NPY_COMPLEX64 && rank == 2) {
 			futures.push_back(async(std::launch::async, clean_2d_c, res,ker,mdl,area,gain,maxiter,tol,stop_if_div,verb,pos_def,dev));
 			
 		} else {

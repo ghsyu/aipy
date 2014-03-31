@@ -17,7 +17,7 @@ import numpy as n, sys, _deconvGPU
 # Find smallest representable # > 0 for setting clip level
 lo_clip_lev = n.finfo(n.float).tiny 
 
-def clean(ims, ker, mdls=None, area=None, devices=[0, 1, 2, 3], gain=.1, maxiter=10000, tol=1e-3, 
+def clean(ims, ker, mdl=None, area=None, devices=[0, 1, 2, 3], gain=.1, maxiter=10000, tol=1e-3, 
         stop_if_div=True, verbose=False, pos_def=False):
     """This standard Hoegbom clean deconvolution algorithm operates on the 
     assumption that the image is composed of point sources.  This makes it a 
@@ -33,36 +33,39 @@ def clean(ims, ker, mdls=None, area=None, devices=[0, 1, 2, 3], gain=.1, maxiter
     a poor job of deconvolving."""
     if len(ims) != len(devices):
         raise ValueError('number of images must equal number of devices')
-    if mdls == None:
-        mdls = [None]*len(devices)
+    if mdl == None:
+        mdl = [None]*len(devices)
     mdl_l = []
     res_l = []
     info_l = []
-    ker_l = ker.astype(complex64)
     if len(ker) != len(devices):
         if len(ker) == len(ims[0]):
-            ker_l = [ker]*len(devices)
+            ker_l = [n.ascontiguousarray(ker).astype(n.complex64)]*len(devices)
         else:
             raise ValueError('size of kernel must equal size of image')
+    else:
+        ker_l = []
+        for k in ker:
+            ker_l.append(n.ascontiguousarray(k).astype(n.complex64))
     ims = iter(ims)
     kers = iter(ker_l)
-    for mdl in mdls:
+    for m in mdl:
         k = kers.next()
-        im = ims.next()
-        if mdl is None:
-            mdl = n.zeros(im.shape, dtype=im.dtype)
+        im = ims.next().astype(n.complex64)
+        if m is None:
+            m = n.zeros(im.shape, dtype=im.dtype)
             res = im.copy()
         else:
-            mdl = mdl.copy()
-            if len(mdl.shape) == 1:
-                res = im - n.fft.ifft(n.fft.fft(mdl) * \
+            m = m.copy().astype(n.complex64)
+            if len(m.shape) == 1:
+                res = im - n.fft.ifft(n.fft.fft(m) * \
                                       n.fft.fft(k)).astype(im.dtype)
-            elif len(mdl.shape) == 2:
-                res = im - n.fft.ifft2(n.fft.fft2(mdl) * \
+            elif len(m.shape) == 2:
+                res = im - n.fft.ifft2(n.fft.fft2(m) * \
                                        n.fft.fft2(k)).astype(im.dtype)
             else: raise ValueError('Number of dimensions != 1 or 2')
-        mdl_l.append(mdl)
-        res_l.append(res)
+        mdl_l.append(n.ascontiguousarray(m))
+        res_l.append(n.ascontiguousarray(res))
     if area is None:
         area = n.ones(im.shape, dtype=n.int32)
     else:
@@ -91,4 +94,4 @@ def recenter(a, c):
     c = (c[0] % s[0], c[1] % s[1])
     a1 = n.concatenate([a[c[0]:], a[:c[0]]], axis=0)
     a2 = n.concatenate([a1[:,c[1]:], a1[:,:c[1]]], axis=1)
-    return a2
+    return a1
