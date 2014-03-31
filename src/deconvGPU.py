@@ -13,6 +13,7 @@ upper = upper bound of pixel values in deconvolved image
 """
 
 import numpy as n, sys, _deconvGPU
+import pyfftw as pf
 
 # Find smallest representable # > 0 for setting clip level
 lo_clip_lev = n.finfo(n.float).tiny 
@@ -58,11 +59,11 @@ def clean(ims, ker, mdl=None, area=None, devices=[0, 1, 2, 3], gain=.1, maxiter=
         else:
             m = m.copy().astype(n.complex64)
             if len(m.shape) == 1:
-                res = im - n.fft.ifft(n.fft.fft(m) * \
-                                      n.fft.fft(k)).astype(im.dtype)
+                res = im - pf.interfaces.numpy_fft.ifft(pf.interfaces.numpy_fft.fft(m) * \
+                                      pf.interfaces.numpy_fft.fft(k)).astype(im.dtype)
             elif len(m.shape) == 2:
-                res = im - n.fft.ifft2(n.fft.fft2(m) * \
-                                       n.fft.fft2(k)).astype(im.dtype)
+                res = im - pf.interfaces.numpy_fft.ifft2(pf.interfaces.numpy_fft.fft2(m) * \
+                                       pf.interfaces.numpy_fft.fft2(k)).astype(im.dtype)
             else: raise ValueError('Number of dimensions != 1 or 2')
         mdl_l.append(n.ascontiguousarray(m))
         res_l.append(n.ascontiguousarray(res))
